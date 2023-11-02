@@ -20,6 +20,10 @@ Currently, it does not generate a graphical output due to complexities with crea
 #### 'historical_apvi_data.py'
 Produces a time-series graph representing historical data on solar PV system output, performance, and capacity. Although data availability is announced starting from 2001.04.01 on the website, in practice, the accessible data begins on 2015.02.01. Users can select different time ranges for the data (Yearly, Year to Start, Weekly, Daily), but an increase in the data points can lead to longer processing times.
 
+#### 'APVI_helper.py'
+Helper module used by both today_apvi_data.py and historical_apvi_data.py.
+
+
 ### 'solar_chart.py'
 Extracting solar panel price data. 
 It returns a tabular dataset that lists the prices for solar panels of different power outputs. 
