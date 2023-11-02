@@ -1,11 +1,13 @@
 import pandas as pd
 
-# Filter for rows where 'Timestamp' ends with '12:00:00 +1000'
+#Filter for rows where 'Timestamp' ends with '12:00:00 +1000'
 def filter_timestamp(df):
             return df[df['Timestamp'].str.endswith('12:00:00 +1000')]
 
+#Group data from the same state
 def categorize_data_by_state(df, column_name='Postcode'):
     categories = {
+        #Postcode 
         'NSW': ['02', '1', '2'],  
         'VIC': ['3'],             
         'QLD': ['4', '9'],             
@@ -34,6 +36,7 @@ def categorize_data_by_state(df, column_name='Postcode'):
 
     return categorized_dfs
 
+#Add data from the same state and same time 
 def calculate_total(categorized_data, column_name, date_column = 'Date'):
     results = []
     for state, data in categorized_data.items():
@@ -50,11 +53,12 @@ def calculate_total(categorized_data, column_name, date_column = 'Date'):
                 results.append({
                     "State": state,
                     date_column: date,
-                    "Total_" + column_name: 0  # If there's no data, we set the total to 0
+                    "Total_" + column_name: 0 
                 })
 
     return pd.DataFrame(results)
 
+#Average data from the same state and date
 def calculate_average(categorized_data, column_name, date_column = 'Date'):
     results = []
     for state, data in categorized_data.items():
@@ -71,7 +75,7 @@ def calculate_average(categorized_data, column_name, date_column = 'Date'):
                 results.append({
                     "State": state,
                     date_column: date,
-                    "Average_" + column_name: 0  # If there's no data, we set the average to 0
+                    "Average_" + column_name: 0 
                 })
 
     return pd.DataFrame(results)
