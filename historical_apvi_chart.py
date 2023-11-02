@@ -7,7 +7,8 @@ import plotly.graph_objects as go
 import streamlit as st
 from concurrent.futures import ThreadPoolExecutor
 
-TOKEN = "42d87a50153"
+
+TOKEN = "add_your_token_here"
 #Set to yesterday since we extract 12pm's data and today's might be unavaliable 
 yesterday = datetime.now() - timedelta(days=1)
 END_DATE = yesterday.strftime('%Y-%m-%d')
@@ -131,7 +132,8 @@ def plot_data(df, title, y_col_name):
 #     st.plotly_chart(plot_data(data[1], 'Performance', 'Average_Performance'))
 #     st.plotly_chart(plot_data(data[2], 'Output', 'Total_Output'))
 
-# A more interactive version (but slwer)
+# A more interactive version (but slower)
+
 def main():
     st.title('APVI Historical Data Visualization')
     
