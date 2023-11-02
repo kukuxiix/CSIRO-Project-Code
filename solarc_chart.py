@@ -4,19 +4,14 @@ from bs4 import BeautifulSoup
 import plotly.graph_objects as go
 import pandas as pd
 
-# Solar panel costs (table)
+#Solar panel costs (table)
 def scrape_solar_prices(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
-    
-    # Find the table using its id
+
     table = soup.find('table', id='tablepress-5')
-    
-    # Extract headers
-    headers = [th.text for th in table.thead.find_all('th')]
-    
-    # Extract rows
-    rows = table.tbody.find_all('tr')
+    headers = [th.text for th in table.thead.find_all('th')] #Extract headers
+    rows = table.tbody.find_all('tr') #Extract rows 
     data = []
     for row in rows:
         cells = row.find_all(['td', 'th'])
@@ -25,7 +20,7 @@ def scrape_solar_prices(url):
     
     return headers, data
 
-# Average commercial solar panel costs per watt (one number)
+#Average commercial solar panel costs per watt (one number)
 def scrape_average_price(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
@@ -38,7 +33,7 @@ def scrape_average_price(url):
 def main():
     st.title('Solar Panel Costs')
 
-    # Define passionate solar colors
+    #Change colours 
     color_one = "#FF4500" 
     color_two = "#FFD700"  
     color_three = "#FFFAF0" 
@@ -59,8 +54,6 @@ def main():
     # Fetch and display table
     try:
         headers, data = scrape_solar_prices(url)
-
-        # Creating the table with enhanced aesthetics
         transposed_data = [list(item) for item in zip(*data)] 
         fig = go.Figure(data=[go.Table(
             header=dict(
