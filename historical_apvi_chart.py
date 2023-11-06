@@ -8,7 +8,7 @@ import streamlit as st
 from concurrent.futures import ThreadPoolExecutor
 
 
-TOKEN = "add_your_token_here"
+TOKEN = "42d87a50153"
 #Set to yesterday since we extract 12pm's data and today's might be unavaliable 
 yesterday = datetime.now() - timedelta(days=1)
 END_DATE = yesterday.strftime('%Y-%m-%d')
