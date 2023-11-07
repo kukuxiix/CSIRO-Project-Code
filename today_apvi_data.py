@@ -1,85 +1,54 @@
+import streamlit as st
 import requests
-import json
 import pandas as pd
 from datetime import datetime
-from APVI_helper import (filter_timestamp, categorize_data_by_state,
-                         calculate_total, calculate_average)
+import plotly.express as px
+from APVI_helper import categorize_data_by_state, calculate_average
 
+TOKEN = "42d87a50153"
 
-TOKEN = "add_your_token_here"
-
-
-def fetch_api_data(url):
+def api_data_extractor_today(token):
+    # Get the data from the API
+    url = f"https://pv-map.apvi.org.au/api/v2/2-digit/today.json?access_token={token}"
     response = requests.get(url)
-    response.raise_for_status()  
-    return response.json()
+    data = response.json()
 
-
-def process_data_frame(data, freq, field_name):
-    df = pd.DataFrame.from_dict(data[freq], orient='index')
-    df.reset_index(inplace=True)
-
-    if freq == 'capacity':
-        df['Date'] = datetime.now().strftime('%Y-%m-%d')  # Set to today's date
-        df.columns = ['Postcode', 'Capacity_MW', 'Date']
-        df = df[['Date', 'Postcode', 'Capacity_MW']]
-    else:
-        df = pd.melt(df, id_vars=['index'])
-        df.columns = ['Postcode', 'Timestamp', field_name]
-        df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-        latest_timestamp = df['Timestamp'].max()
-        df = df[df['Timestamp'] == latest_timestamp]
-
-    return df
-
-
-def api_data_extractor_today(token, field="all", postcode="all"):
-    df_cap_all, df_per_all, df_out_all = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
-
-    try:
-        # URL specifically for today's data
-        url = f"https://pv-map.apvi.org.au/api/v2/2-digit/today.json?access_token={token}"
-        print("Fetching data for today")
-        data = fetch_api_data(url)
-
-        if field in ["all", "capacity"]:  # Daily frequency
-            df_cap = process_data_frame(data, 'capacity', 'Capacity_MW')
-            if postcode != "all":
-                df_cap = df_cap[df_cap['Postcode'].str.startswith(str(postcode))].copy()
-            df_cap_all = pd.concat([df_cap_all, df_cap], ignore_index=True)
-
-        if field in ["all", "performance"]:  # 15min frequency
-            df_per = process_data_frame(data, 'performance', 'Performance')
-            df_per_all = pd.concat([df_per_all, df_per], ignore_index=True)
-
-        if field in ["all", "output"]:  # 15min frequency
-            df_out = process_data_frame(data, 'output', 'Output')
-            df_out_all = pd.concat([df_out_all, df_out], ignore_index=True)
-
-    except requests.HTTPError as http_err:
-        print(f"HTTP error occurred: {http_err}")
-    except Exception as err:
-        print(f"An unexpected error occurred: {err}")
-
-    cat_cap = categorize_data_by_state(df_cap_all)
-    cat_per = categorize_data_by_state(df_per_all)
-    cat_out = categorize_data_by_state(df_out_all)
-
-    total_cap = calculate_total(cat_cap, 'Capacity_MW')
-    average_per = calculate_average(cat_per, 'Performance', 'Timestamp')
-    total_out = calculate_total(cat_out, 'Output', 'Timestamp')
-
-    return [total_cap, average_per, total_out]
-
+    # Process performance data
+    df_per = pd.DataFrame.from_dict(data['performance'], orient='index')
+    df_per = df_per.transpose()  # Transpose the DataFrame so that timestamps are rows
+    df_per = df_per.melt(ignore_index=False).reset_index()
+    df_per.columns = ['Timestamp', 'Postcode', 'Performance']
+    df_per['Timestamp'] = pd.to_datetime(df_per['Timestamp'])
+    
+    return df_per
 
 def main():
-    token = TOKEN 
+    st.title("PV Daily Performance Data")
 
-    try:
-        data = api_data_extractor_today(token)
-        print(data)
-    except Exception as e:
-        print(f"An error occurred when fetching and processing data: {e}")
+    # Fetch and process the data automatically on app start
+    df_per_all = api_data_extractor_today(TOKEN)
+
+    # Group data by state using the provided categorize_data_by_state function
+    categorized_by_state = categorize_data_by_state(df_per_all)
+
+    # Calculate the average performance for each state
+    df_state_averages = calculate_average(categorized_by_state, 'Performance', 'Timestamp')
+
+    # Get the list of states from the categorized data
+    states = list(categorized_by_state.keys())
+    selected_state = st.selectbox('Select a State', states)
+
+    # Filter the DataFrame for the selected state's average data
+    df_selected = df_state_averages[df_state_averages['State'] == selected_state]
+
+    # Convert Timestamp to just the time part
+    df_selected['Time'] = pd.to_datetime(df_selected['Timestamp']).dt.strftime('%H:%M')  # Format as HH:MM
+
+    # Create the plot with Plotly
+    fig = px.line(df_selected, x='Time', y='Average_Performance', title=f'Average Performance over Time in {selected_state}')
+    fig.update_xaxes(title='Time of Day')
+    fig.update_yaxes(title='Average Performance (kW)')
+    st.plotly_chart(fig)
 
 
 if __name__ == "__main__":
