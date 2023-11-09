@@ -15,7 +15,7 @@ END_DATE = yesterday.strftime('%Y-%m-%d')
 START_DATE = "2015-02-01"
 
 
-@st.cache(ttl=3600)  # Cache for 1 hour; adjust TTL as appropriate
+@st.cache(ttl=3600)  #Cache for 1 hour
 def fetch_data_for_date(date, token):
     url = f"https://pv-map.apvi.org.au/api/v2/2-digit/{date}.json"
     params = {'access_token': token}
@@ -68,7 +68,7 @@ def api_data_extractor_historical(start_date, end_date, token, frequency="Y", fi
     date_range = pd.date_range(start=start_date, end=end_date, freq=frequency)
     dates_list = [date.strftime('%Y-%m-%d') for date in date_range]
 
-    # Append 'yesterday' only if frequency is 'Y' and it's not in the list
+    #Append 'yesterday' only if frequency is 'Y' and it's not in the list
     if frequency == "Y" and END_DATE not in dates_list:
         dates_list.append(END_DATE)
 
@@ -76,7 +76,7 @@ def api_data_extractor_historical(start_date, end_date, token, frequency="Y", fi
     df_per_all = []
     df_out_all = []
 
-    # Fetch data using ThreadPoolExecutor for concurrent requests
+    #Fetch data using ThreadPoolExecutor for concurrent requests
     with ThreadPoolExecutor(max_workers=10) as executor:
         results = executor.map(lambda date: fetch_data_for_date(date, token), dates_list)
 
@@ -135,19 +135,33 @@ def plot_data(df, title, y_col_name):
 # A more interactive version (but slower)
 
 def main():
-    st.title('APVI Historical Data Visualization')
+    st.markdown("## PV Trend")
+    #Define frequencies as a dictionary
+    frequencies = {
+        'Weekly': 'W',
+        'Daily': 'D',
+        'Year': 'Y'
+    }
+
+    #Ensure start date does not go before 2015 and end date does not go over today
+    MIN_START_DATE = datetime.strptime('2015-01-01', '%Y-%m-%d')
+    MAX_END_DATE = datetime.now()
+
+    #Set the earliest selectable date
+    start_date = st.date_input('Start date', datetime.strptime(START_DATE, '%Y-%m-%d'), min_value=MIN_START_DATE, max_value=MAX_END_DATE)
+    end_date = st.date_input('End date', MAX_END_DATE, min_value=MIN_START_DATE, max_value=MAX_END_DATE)
+
+    # The selectbox uses the keys from the frequencies dictionary
+    selected_frequency = st.selectbox('Select Frequency', list(frequencies.keys()), index=2)
     
-    start_date = st.date_input('Start date', datetime.strptime(START_DATE, '%Y-%m-%d'))
-    end_date = st.date_input('End date', yesterday)
-    frequencies = ['D', 'M', 'Y', 'YS']
-    selected_frequency = st.selectbox('Select Frequency', frequencies, index=2)
+
     states = ['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA']
     selected_states = st.multiselect('Select States', states, default=states)
     metrics = ['Capacity', 'Performance', 'Output']
     selected_metric = st.selectbox('Select Metric', metrics)
 
     total_cap, average_per, total_out = api_data_extractor_historical(
-        start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'), TOKEN, selected_frequency)
+        start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'), TOKEN, frequencies[selected_frequency])
 
     total_cap = total_cap[total_cap['State'].isin(selected_states)]
     average_per = average_per[average_per['State'].isin(selected_states)]

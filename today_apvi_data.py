@@ -1,15 +1,15 @@
 import streamlit as st
 import requests
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import plotly.express as px
 from APVI_helper import categorize_data_by_state, calculate_average
 
 TOKEN = "42d87a50153"
 
-def api_data_extractor_today(token):
-    # Get the data from the API
-    url = f"https://pv-map.apvi.org.au/api/v2/2-digit/today.json?access_token={token}"
+def api_data_extractor(token, date):
+    # Get the data from the API for the given date
+    url = f"https://pv-map.apvi.org.au/api/v2/2-digit/{date}.json?access_token={token}"
     response = requests.get(url)
     data = response.json()
 
@@ -23,31 +23,28 @@ def api_data_extractor_today(token):
     return df_per
 
 def main():
-    st.title("PV Daily Performance Data")
+    st.markdown("## Yesterday's PV Performance")
 
-    # Fetch and process the data automatically on app start
-    df_per_all = api_data_extractor_today(TOKEN)
+    yesterday = datetime.now() - timedelta(days=1)
+    yesterday_date = yesterday.strftime('%Y-%m-%d')
 
-    # Group data by state using the provided categorize_data_by_state function
+    df_per_all = api_data_extractor(TOKEN, yesterday_date)
     categorized_by_state = categorize_data_by_state(df_per_all)
-
-    # Calculate the average performance for each state
     df_state_averages = calculate_average(categorized_by_state, 'Performance', 'Timestamp')
 
-    # Get the list of states from the categorized data
+    #Get the list of states from the categorized data
     states = list(categorized_by_state.keys())
     selected_state = st.selectbox('Select a State', states)
 
-    # Filter the DataFrame for the selected state's average data
+    #Filter the DataFrame for the selected state's average data
     df_selected = df_state_averages[df_state_averages['State'] == selected_state]
 
-    # Convert Timestamp to just the time part
-    df_selected['Time'] = pd.to_datetime(df_selected['Timestamp']).dt.strftime('%H:%M')  # Format as HH:MM
+    #Convert Timestamp to just the time part
+    df_selected['Time'] = pd.to_datetime(df_selected['Timestamp']).dt.strftime('%H:%M')
 
-    # Create the plot with Plotly
     fig = px.line(df_selected, x='Time', y='Average_Performance', title=f'Average Performance over Time in {selected_state}')
     fig.update_xaxes(title='Time of Day')
-    fig.update_yaxes(title='Average Performance (kW)')
+    fig.update_yaxes(title='Average Performance (%)')
     st.plotly_chart(fig)
 
 
